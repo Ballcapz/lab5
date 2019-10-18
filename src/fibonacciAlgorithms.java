@@ -20,7 +20,7 @@ public class fibonacciAlgorithms {
     private static int numberOfTrials = 1;
     private static int MAXINPUTSIZE  = (int) Math.pow(2, 26);
     private static int MININPUTSIZE  =  1;
-    private static int SIZEINCREMENT = 2;
+//    private static int SIZEINCREMENT = 2;
 
     static Random rand = new Random();
 
@@ -33,10 +33,10 @@ public class fibonacciAlgorithms {
 
     public static void main(String args[])
     {
-//        checkSortCorrectness();
-        runFullExperiment("slowQuickSort-ONSORTED-1-TRASH.txt");
-        runFullExperiment("slowQuickSort-ONSORTED-2.txt");
-        runFullExperiment("slowQuickSort-ONSORTED-3.txt");
+        verifyCorrectFibonacciNumber();
+//        runFullExperiment("slowQuickSort-ONSORTED-1-TRASH.txt");
+//        runFullExperiment("slowQuickSort-ONSORTED-2.txt");
+//        runFullExperiment("slowQuickSort-ONSORTED-3.txt");
     }
 
     private static void runFullExperiment(String resultsFileName) {
@@ -62,7 +62,7 @@ public class fibonacciAlgorithms {
 //        double[] timeRatios;
         double previousTime = 0;
 
-        for(int inputSize=MININPUTSIZE;inputSize<=MAXINPUTSIZE; inputSize*=SIZEINCREMENT) {
+        for(int inputSize=MININPUTSIZE;inputSize<=MAXINPUTSIZE; inputSize++) {
 
             // progress message...
 
@@ -142,53 +142,142 @@ public class fibonacciAlgorithms {
     }
 
 
+    // iterative, in-place fibonacci algorithm
+    static long fibLoop(int x) {
+        // temp values to store in place
+        long twoPrevious = 0, previous = 1, current;
+        // exit if fib will be 0
+        if (x == 0)
+            return twoPrevious;
 
-
-
-
-
-
-
-
-
-
-
-
-
-    private static boolean verifySorted(long[] list) {
-        if (list.length == 0 || list.length == 1) {
-            return true;
+        // loop until we reach the target number x while continually adding up
+        // the previous two numbers in the sequence and continually replacing
+        // each of the values after they are used
+        for (int i = 2; i <= x; i++) {
+            current = twoPrevious + previous;
+            twoPrevious = previous;
+            previous = current;
         }
-
-        for (int i = 1; i < list.length; i++) {
-            // unsorted pair found
-            if (list[i-1] > list[i])
-                return false;
-        }
-        // no unsorted pair found
-        return true;
+        // return the final result
+        return previous;
     }
 
-    private static void checkSortCorrectness() {
-        long[] testList1 = createRandomIntegerList(100);
-        long[] testList2 = createRandomIntegerList(100);
-
-        long[] testShortList = {17, 5, 3, 8, 2, 11};
-        long[] testShortList2 = {12, 5, 3, 8, 42, 71, 26, 2, 11};
-
-        printArray(testShortList);
-        printArray(testShortList2);
 
 
-        printArray(testShortList);
-        printArray(testShortList2);
+    // normal simple recursive algorithm
+    static long fibRecur(long x) {
+        // base case, head back up if number is 0 or 1
+        if (x <= 1)
+            return x;
 
-        if (verifySorted(testList1) && verifySorted(testList2)) {
-            System.out.println("sort results verified!!!");
+        // continually call the function working down a recursive tree
+        // when we get to the bottom, add em all up
+        return fibRecur(x - 1) + fibRecur(x - 2);
+    }
+
+
+
+
+    // wrapper for the dynamic recursive function
+    static long fibRecurDP(int x) {
+        // sets up the storage for the dynnamic algo to store it's saved values
+        long[] memo = new long[x + 2];
+        // call the actual worker to get the fib result
+        long result = fibRecurDPWorker(x, memo);
+        return result;
+    }
+
+    // dynamic recursive fibonacci algorithm
+    static long fibRecurDPWorker(int x, long[] memo) {
+        memo = new long[x + 2]; // 1 extra to handle case, n = 0
+
+        // exits if the array position has not been written to
+        if (memo[x] == -1)
+            return memo[x];
+
+        // case to get out if we are less than 2
+        if (x <= 2)
+            return 1;
+
+        // recursive calls to the algo to add the results
+        long res = fibRecurDPWorker(x - 1, memo) + fibRecurDPWorker(x - 2, memo);
+
+        // store added result in the array for the future, where it is passed recursively to the
+        // function
+        memo[x] = res;
+
+        // return the result to be used in the next recursive call
+        return res;
+    }
+
+
+
+
+    // algorithm using the matrix of {{1, 1} {1, 0}} taken to the power of
+    // the fib number we want
+    static long fibMatrix(long x) {
+        // create new matrix of {{1, 1} {1, 0}}
+        long F[][] = new long[][] { { 1, 1 }, { 1, 0 } };
+        // get out if x == 0
+        if (x == 0)
+            return 0;
+        // the function to put the matrix to the power of x
+        power(F, x - 1);
+        // return the result
+        return F[0][0];
+    }
+
+    /*
+      Helper function that multiplies 2 matrices F and M of size 2*2, and puts the
+      multiplication result back to F[][]
+      This is what does our matrix multiplication for us
+     */
+    static void multiply(long F[][], long M[][]) {
+        // do the multiplication
+        long x = F[0][0] * M[0][0] + F[0][1] * M[1][0];
+        long y = F[0][0] * M[0][1] + F[0][1] * M[1][1];
+        long z = F[1][0] * M[0][0] + F[1][1] * M[1][0];
+        long w = F[1][0] * M[0][1] + F[1][1] * M[1][1];
+
+        // repopulate the matrix
+        F[0][0] = x;
+        F[0][1] = y;
+        F[1][0] = z;
+        F[1][1] = w;
+    }
+
+    /*
+      Helper function that calculates F[][] raise to the power n and puts the
+      result in F[][]
+     */
+    static void power(long F[][], long x) {
+        long i;
+        // new matrix of the same value to use for our multiplication
+        long M[][] = new long[][] { { 1, 1 }, { 1, 0 } };
+
+        // x - 1 times multiply the matrix to {{1,0},{0,1}}
+        // multiplies it all of the times necessary
+        for (i = 2; i <= x; i++)
+            multiply(F, M); // the function that actually does the matrix multiplication
+    }
+
+
+
+    
+
+
+    private static void verifyCorrectFibonacciNumber() {
+        int expected = 4181;
+        long result = fibMatrix(19);
+        System.out.println("Fib number is: " + result);
+        if (result == expected) {
+            System.out.println("Fib number is correct");
         } else {
-            System.out.println("sort results NOT correct...");
+            System.out.println("BROKEN !!!!!!");
         }
     }
+
+
     //<editor-fold desc="Utilities">
     /* UTILITY FUNCTIONS */
     /* A utility function to print array of size n */
