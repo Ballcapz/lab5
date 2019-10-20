@@ -17,12 +17,16 @@ public class fibonacciAlgorithms {
     /* define constants */
     static long MAXVALUE =  2000000000;
     static long MINVALUE = -2000000000;
-    private static int numberOfTrials = 1;
-    private static int MAXINPUTSIZE  = 50;
+    private static int numberOfTrials = 1000;
+    private static int MAXINPUTSIZE  = 92;
+    private static int HALFINPUTSIZE = 40;
     private static int MININPUTSIZE  =  1;
 //    private static int SIZEINCREMENT = 2;
 
     static Random rand = new Random();
+
+    // lookup table for recursive dynamic fib algorithm
+    private static long[] memo;
 
     // static int SIZEINCREMENT =  10000000; // not using this since we are doubling the size each time
     private static String ResultsFolderPath = "/home/zach/Results/lab5/"; // pathname to results folder
@@ -33,17 +37,34 @@ public class fibonacciAlgorithms {
 
     public static void main(String args[])
     {
-        verifyCorrectFibonacciNumber();
-//        runFullExperiment("fibRecur-1-TRASH.txt");
-//        runFullExperiment("fibRecur-2.txt");
-//        runFullExperiment("fibRecur-3.txt");
+        verifyCorrectFibonacciNumber(fibonacciAlgorithms::fibLoop);
+        verifyCorrectFibonacciNumber(fibonacciAlgorithms::fibRecur);
+        verifyCorrectFibonacciNumber(fibonacciAlgorithms::fibRecurDP);
+        verifyCorrectFibonacciNumber(fibonacciAlgorithms::fibMatrix);
+
+        runFullExperiment("fibRecurDP-1.txt", fibonacciAlgorithms::fibRecurDP, MAXINPUTSIZE);
+        runFullExperiment("fibRecurDP-2.txt", fibonacciAlgorithms::fibRecurDP, MAXINPUTSIZE);
+        runFullExperiment("fibRecurDP-3.txt", fibonacciAlgorithms::fibRecurDP, MAXINPUTSIZE);
+
+        runFullExperiment("fibMatrix-1.txt", fibonacciAlgorithms::fibMatrix, MAXINPUTSIZE);
+        runFullExperiment("fibMatrix-2.txt", fibonacciAlgorithms::fibMatrix, MAXINPUTSIZE);
+        runFullExperiment("fibMatrix-3.txt", fibonacciAlgorithms::fibMatrix, MAXINPUTSIZE);
+
+        runFullExperiment("fibLoop-1.txt", fibonacciAlgorithms::fibLoop, MAXINPUTSIZE);
+        runFullExperiment("fibLoop-2.txt", fibonacciAlgorithms::fibLoop, MAXINPUTSIZE);
+        runFullExperiment("fibLoop-3.txt", fibonacciAlgorithms::fibLoop, MAXINPUTSIZE);
+
+        runFullExperiment("fibRecur-1.txt", fibonacciAlgorithms::fibRecur, HALFINPUTSIZE);
+        runFullExperiment("fibRecur-2.txt", fibonacciAlgorithms::fibRecur, HALFINPUTSIZE);
+        runFullExperiment("fibRecur-3.txt", fibonacciAlgorithms::fibRecur, HALFINPUTSIZE);
     }
 
     // verification function that makes sure we get the correct fib number
     // Basically a unit test by hand
-    private static void verifyCorrectFibonacciNumber() {
+    private static void verifyCorrectFibonacciNumber(Function<Integer, Long> fibFunction) {
         int expected = 4181;
-        long result = fibLoop(19);
+
+        long result = fibFunction.apply(19);
         System.out.println("Fib number is: " + result);
         if (result == expected) {
             System.out.println("Fib number is correct");
@@ -54,7 +75,7 @@ public class fibonacciAlgorithms {
 
 
 
-    private static void runFullExperiment(String resultsFileName) {
+    private static void runFullExperiment(String resultsFileName, Function<Integer, Long> fibFunction, int maxInputSize) {
         try {
             resultsFile = new FileWriter(ResultsFolderPath + resultsFileName);
             resultsWriter = new PrintWriter(resultsFile);
@@ -69,7 +90,7 @@ public class fibonacciAlgorithms {
         ThreadCpuStopWatch TrialStopwatch = new ThreadCpuStopWatch(); // for timing an individual trial
 
 
-        resultsWriter.println("#X(Value)    N(InputSize)   AverageTime        Fib Number"); // # marks a comment in gnuplot data
+        resultsWriter.println("#X(Value)        AverageTime"); // # marks a comment in gnuplot data
 
         resultsWriter.flush();
 
@@ -77,7 +98,7 @@ public class fibonacciAlgorithms {
 //        double[] timeRatios;
 //        double previousTime = 0;
 
-        for(int inputSize=MININPUTSIZE;inputSize<=MAXINPUTSIZE; inputSize++) {
+        for(int inputSize=MININPUTSIZE;inputSize<=maxInputSize; inputSize++) {
 
             // progress message...
 
@@ -101,7 +122,7 @@ public class fibonacciAlgorithms {
             //BatchStopwatch.start(); // comment this line if timing trials individually
 
             long result = 0;
-
+            long batchCount = 0;
             // run the trials
 //            System.out.println("Timing Each sort individually wo gc every time forced...");
             System.out.print("    Starting trials for input size "+inputSize+" ... ");
@@ -117,6 +138,7 @@ public class fibonacciAlgorithms {
                 //quickSort(testList);
                 //System.gc();
 
+
                 TrialStopwatch.start(); // *** uncomment this line if timing trials individually
 
                 /* run the function we're testing on the trial input */
@@ -125,7 +147,7 @@ public class fibonacciAlgorithms {
                 /*              DO BIDNESS              */
                 /////////////////////////////////////////
 
-                result = fibRecur(inputSize);
+                result = fibFunction.apply(inputSize);
 
 
                 ///////////////////////////////////////////
@@ -139,15 +161,10 @@ public class fibonacciAlgorithms {
             //batchElapsedTime = BatchStopwatch.elapsedTime(); // *** comment this line if timing trials individually
 
             double averageTimePerTrialInBatch = (double) batchElapsedTime / (double)numberOfTrials; // calculate the average time per trial in this batch
-//            double doublingRatio = 0;
-//            if (previousTime > 0) {
-//                doublingRatio = averageTimePerTrialInBatch / previousTime;
-//            }
-//
-//            previousTime = averageTimePerTrialInBatch;
-            /* print data for this size of input */
+            long avCount = batchCount / numberOfTrials;
 
-            resultsWriter.printf("%10d %12d  %18.2f %18d\n",inputSize, log2(inputSize), averageTimePerTrialInBatch, result); // might as well make the columns look nice
+            /* print data for this size of input */
+            resultsWriter.printf("%10d  %18.2f\n",inputSize, averageTimePerTrialInBatch); // might as well make the columns look nice
 
             resultsWriter.flush();
 
@@ -180,7 +197,7 @@ public class fibonacciAlgorithms {
 
 
     // normal simple recursive algorithm
-    static long fibRecur(long x) {
+    static long fibRecur(int x) {
         // base case, head back up if number is 0 or 1
         if (x <= 1)
             return x;
@@ -196,33 +213,30 @@ public class fibonacciAlgorithms {
     // wrapper for the dynamic recursive function
     static long fibRecurDP(int x) {
         // sets up the storage for the dynnamic algo to store it's saved values
-        long[] memo = new long[x + 2];
+        memo = new long[x+2];
+        // initialize the array's values to -1 for checking against
+        for (int i = 0; i < x+2; i++) {
+            memo[i] = -1;
+        }
         // call the actual worker to get the fib result
-        long result = fibRecurDPWorker(x, memo);
+        long result = fibRecurDPWorker(x);
         return result;
     }
 
     // dynamic recursive fibonacci algorithm
-    static long fibRecurDPWorker(int x, long[] memo) {
-        memo = new long[x + 2]; // 1 extra to handle case, n = 0
+    static long fibRecurDPWorker(int x) {
 
-        // exits if the array position has not been written to
-        if (memo[x] == -1)
-            return memo[x];
-
-        // case to get out if we are less than 2
-        if (x <= 2)
-            return 1;
-
-        // recursive calls to the algo to add the results
-        long res = fibRecurDPWorker(x - 1, memo) + fibRecurDPWorker(x - 2, memo);
-
-        // store added result in the array for the future, where it is passed recursively to the
-        // function so it doesn't have to be recomputed
-        memo[x] = res;
-
-        // return the result to be used in the next recursive call
-        return res;
+        // if the array position does not have a set value, start working
+        if (memo[x] == -1) {
+            // if we are down to 1 || 0, set the value in the memo table
+            if (x <= 1)
+                memo[x] = x;
+            // otherwise, call the function recursively and store the summed value in the table
+            else
+                memo[x] = fibRecurDPWorker(x-1) + fibRecurDPWorker(x-2);
+        }
+        // return the result from the table to be used at the end and in the iterations
+        return memo[x];
     }
 
 
@@ -266,14 +280,21 @@ public class fibonacciAlgorithms {
       result in F[][]
      */
     static void fibMatrixWorker(long F[][], long x) {
-        long i;
+        // base case to exit if 1 || 0
+        if (x <= 1) return;
+
         // new matrix of the same value to use for our multiplication
         long M[][] = new long[][] { { 1, 1 }, { 1, 0 } };
 
-        // x - 1 times multiply the matrix to {{1,0},{0,1}}
-        // multiplies it all of the times necessary
-        for (i = 2; i <= x; i++)
-            multiply(F, M); // the function that actually does the matrix multiplication
+        // call the function recursively in half, then multiply the matrices
+        fibMatrixWorker(F, x/2);
+        multiply(F, F);
+
+        // if the number x is odd, multiply one last time to get the
+        // correct answer
+        if (x%2 != 0) {
+            multiply(F, M);
+        }
     }
 
 
